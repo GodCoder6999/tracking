@@ -80,9 +80,15 @@
         Period: <strong>All time</strong>
     @endif
     &nbsp;&nbsp;|&nbsp;&nbsp;
+    @if($clientName ?? null)
+        Client: <strong>{{ $clientName }}</strong>
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+    @endif
     Total Orders: <strong>{{ $orders->count() }}</strong>
-    &nbsp;&nbsp;|&nbsp;&nbsp;
-    Unique Clients: <strong>{{ $orders->pluck('client_id')->unique()->count() }}</strong>
+    @if(!($clientName ?? null))
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        Unique Clients: <strong>{{ $orders->pluck('client_id')->unique()->count() }}</strong>
+    @endif
 </div>
 
 {{-- Orders grouped by month --}}

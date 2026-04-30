@@ -34,7 +34,7 @@
         </button>
         <div x-show="open" x-transition class="mt-4 pt-4 border-t border-slate-100">
             <p class="text-xs text-slate-500 mb-3">Select a date range to download your order ledger as a PDF (grouped month-wise).</p>
-            <form method="GET" action="{{ route('dealer.ledger.download') }}" class="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <form method="GET" action="{{ route('dealer.ledger.download') }}" class="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div>
                     <label class="block text-xs font-medium text-slate-600 mb-1">From Date</label>
                     <input type="date" name="from" class="input">
@@ -42,6 +42,15 @@
                 <div>
                     <label class="block text-xs font-medium text-slate-600 mb-1">To Date</label>
                     <input type="date" name="to" class="input">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Client (optional)</label>
+                    <select name="client_id" class="input">
+                        <option value="">All Clients</option>
+                        @foreach($allClients as $c)
+                            <option value="{{ $c->id }}">{{ $c->name }}</option>
+                        @endforeach
+                    </select>
                 </div>
                 <div class="flex items-end">
                     <button type="submit" class="btn-primary w-full flex items-center justify-center gap-2">

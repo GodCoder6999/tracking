@@ -29,7 +29,12 @@ class ClientController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        return view('dealer.clients.index', compact('clients'));
+        $allClients = User::where('role', User::ROLE_CLIENT)
+            ->where('created_by', auth()->id())
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
+        return view('dealer.clients.index', compact('clients', 'allClients'));
     }
 
     public function create()
