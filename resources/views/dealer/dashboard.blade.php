@@ -90,7 +90,7 @@
         @include('partials.stat', ['label' => $anyFilter ? 'Orders (filtered)'  : 'Orders',     'value' => $stats['orders']])
         @include('partials.stat', ['label' => 'Revenue',          'value' => '₹'.number_format($stats['revenue'], 2)])
         @include('partials.stat', ['label' => 'Received',         'value' => '₹'.number_format($stats['received'], 2)])
-        @include('partials.stat', ['label' => 'Due',              'value' => '₹'.number_format($stats['due'], 2)])
+        @include('partials.stat', ['label' => 'Payment Due',      'value' => '₹'.number_format($stats['due'], 2)])
         @include('partials.stat', ['label' => 'Pending Dispatch', 'value' => $stats['pending_dispatch']])
     </div>
 

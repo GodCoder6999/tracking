@@ -27,7 +27,7 @@
 <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
     @include('partials.stat', ['label' => 'Total',      'value' => '₹'.number_format((float) $order->total_amount, 2)])
     @include('partials.stat', ['label' => 'Received',   'value' => '₹'.number_format((float) $order->total_received, 2)])
-    @include('partials.stat', ['label' => 'Due',        'value' => '₹'.number_format((float) $order->due_amount, 2)])
+    @include('partials.stat', ['label' => 'Payment Due', 'value' => '₹'.number_format((float) $order->due_amount, 2)])
     @include('partials.stat', ['label' => 'Token Paid', 'value' => '₹'.number_format((float) $order->token_amount, 2)])
 </div>
 @if ((float)$order->gst_amount > 0 || (float)$order->discount_amount > 0)

@@ -90,12 +90,12 @@
 
     {{-- ── STAT CARDS ─────────────────────────────────────────────── --}}
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        @include('partials.stat', ['label' => 'Dealers',          'value' => $stats['total_dealers']])
+        @include('partials.stat', ['label' => 'Sellers',          'value' => $stats['total_dealers']])
         @include('partials.stat', ['label' => 'Clients',          'value' => $stats['total_clients']])
         @include('partials.stat', ['label' => 'Orders',           'value' => $stats['total_orders'], 'sub' => $stats['orders_today'].' today'])
         @include('partials.stat', ['label' => 'Revenue',          'value' => '₹'.number_format($stats['total_revenue'], 2)])
         @include('partials.stat', ['label' => 'Received',         'value' => '₹'.number_format($stats['total_received'], 2)])
-        @include('partials.stat', ['label' => 'Pending Due',      'value' => '₹'.number_format($stats['pending_due'], 2)])
+        @include('partials.stat', ['label' => 'Payment Due',      'value' => '₹'.number_format($stats['pending_due'], 2)])
         @include('partials.stat', ['label' => 'Pending Dispatch', 'value' => $stats['pending_dispatch']])
     </div>
 

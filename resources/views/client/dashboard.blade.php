@@ -27,7 +27,7 @@
         @include('partials.stat', ['label' => 'Total Orders',     'value' => $stats['total_orders']])
         @include('partials.stat', ['label' => 'Delivered',        'value' => $stats['delivered']])
         @include('partials.stat', ['label' => 'Pending Dispatch', 'value' => $stats['pending_dispatch']])
-        @include('partials.stat', ['label' => 'Pending Due',      'value' => '₹'.number_format($stats['pending_due'], 2)])
+        @include('partials.stat', ['label' => 'Payment Due',      'value' => '₹'.number_format($stats['pending_due'], 2)])
     </div>
 
     @if ($notifications->isNotEmpty())

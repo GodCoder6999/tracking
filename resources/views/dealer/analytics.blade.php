@@ -37,7 +37,7 @@
 <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
     @include('partials.stat', ['label' => 'Total Revenue',  'value' => '₹'.number_format($totals['total_revenue'],  0)])
     @include('partials.stat', ['label' => 'Total Received', 'value' => '₹'.number_format($totals['total_received'], 0)])
-    @include('partials.stat', ['label' => 'Pending Due',    'value' => '₹'.number_format($totals['total_due'],      0), 'highlight' => $totals['total_due'] > 0])
+    @include('partials.stat', ['label' => 'Payment Due',    'value' => '₹'.number_format($totals['total_due'],      0), 'highlight' => $totals['total_due'] > 0])
     @include('partials.stat', ['label' => 'Orders',         'value' => $totals['total_orders']])
     @include('partials.stat', ['label' => 'My Clients',     'value' => $totals['total_clients']])
 </div>
