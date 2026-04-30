@@ -1,0 +1,25 @@
+{
+  "name": "Laravel Tracking",
+  "image": "mcr.microsoft.com/devcontainers/php:1-8.2",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": { "version": "20" },
+    "ghcr.io/devcontainers/features/sshd:1": {}
+  },
+  "forwardPorts": [8000, 5173],
+  "portsAttributes": {
+    "8000": { "label": "Laravel", "onAutoForward": "openBrowser" },
+    "5173": { "label": "Vite" }
+  },
+  "postCreateCommand": "bash .devcontainer/setup.sh",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "bmewburn.vscode-intelephense-client",
+        "onecentlin.laravel-blade",
+        "bradlc.vscode-tailwindcss",
+        "amiralizadeh9480.laravel-extra-intellisense"
+      ]
+    }
+  },
+  "remoteUser": "vscode"
+}

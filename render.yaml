@@ -1,0 +1,45 @@
+services:
+  - type: web
+    name: tracking
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /up
+    envVars:
+      - key: APP_KEY
+        generateValue: true
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_URL
+        sync: false
+      - key: APP_TIMEZONE
+        value: Asia/Kolkata
+      - key: LOG_CHANNEL
+        value: stderr
+      - key: LOG_LEVEL
+        value: info
+      - key: SESSION_DRIVER
+        value: database
+      - key: CACHE_STORE
+        value: database
+      - key: QUEUE_CONNECTION
+        value: database
+      - key: FILESYSTEM_DISK
+        value: public
+      - key: DB_CONNECTION
+        value: libsql
+      - key: DB_DATABASE
+        sync: false
+      - key: DB_AUTH_TOKEN
+        sync: false
+      - key: OWNER_EMAIL
+        value: owner@tracking.local
+      - key: OWNER_PASSWORD
+        sync: false
+      - key: OWNER_GATE_SLUG
+        value: owner-gate-7k9m2x
+      - key: MAIL_MAILER
+        value: log
+

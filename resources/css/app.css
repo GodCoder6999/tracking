@@ -1,0 +1,135 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    * { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+    html { scroll-behavior: smooth; }
+}
+
+@layer components {
+
+    /* ── Buttons ─────────────────────────────────────────────────── */
+    .btn {
+        @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm
+               transition-all duration-200 select-none;
+    }
+    .btn-primary {
+        @apply btn text-white;
+        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+        box-shadow: 0 2px 8px rgba(99,102,241,0.35);
+    }
+    .btn-primary:hover {
+        background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
+        box-shadow: 0 4px 16px rgba(99,102,241,0.45);
+        @apply -translate-y-px;
+    }
+    .btn-primary:active  { @apply translate-y-0; box-shadow: 0 1px 4px rgba(99,102,241,0.3); }
+
+    .btn-secondary {
+        @apply btn bg-white text-slate-700 border border-slate-200
+               hover:bg-slate-50 hover:border-slate-300 hover:-translate-y-px
+               shadow-sm;
+    }
+    .btn-danger {
+        @apply btn text-white;
+        background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+        box-shadow: 0 2px 8px rgba(244,63,94,0.3);
+    }
+    .btn-danger:hover {
+        background: linear-gradient(135deg, #fb7185 0%, #f43f5e 100%);
+        @apply -translate-y-px;
+    }
+
+    /* ── Inputs ──────────────────────────────────────────────────── */
+    .input {
+        @apply w-full rounded-xl border-slate-200 bg-white text-slate-800 placeholder-slate-400
+               text-sm shadow-sm transition-all duration-200;
+        --tw-ring-color: rgba(99,102,241,0.12);
+    }
+    .input:focus {
+        @apply border-brand-400;
+        box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+    }
+
+    /* ── Cards ───────────────────────────────────────────────────── */
+    .card {
+        @apply bg-white rounded-2xl border border-slate-100 p-6;
+        box-shadow: 0 1px 4px rgba(15,23,42,0.04), 0 4px 16px rgba(15,23,42,0.03);
+    }
+
+    /* ── Badges ──────────────────────────────────────────────────── */
+    .badge        { @apply inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-semibold rounded-full; }
+    .badge-green  { @apply badge bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/80; }
+    .badge-yellow { @apply badge bg-amber-50   text-amber-700   ring-1 ring-amber-200/80;  }
+    .badge-red    { @apply badge bg-rose-50    text-rose-700    ring-1 ring-rose-200/80;   }
+    .badge-blue   { @apply badge bg-brand-50   text-brand-700   ring-1 ring-brand-200/80;  }
+    .badge-gray   { @apply badge bg-slate-100  text-slate-600   ring-1 ring-slate-200/80;  }
+
+    /* ── Sidebar ─────────────────────────────────────────────────── */
+    .sidebar {
+        background: linear-gradient(175deg, #0f172a 0%, #1a1740 55%, #1e1b4b 100%);
+    }
+    .sidebar-logo {
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+        box-shadow: 0 4px 14px rgba(99,102,241,0.55);
+    }
+
+    /* Nav items */
+    .nav-item {
+        @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
+               text-slate-400 transition-all duration-200 hover:text-white;
+    }
+    .nav-item:hover { background: rgba(255,255,255,0.07); }
+    .nav-item.active {
+        color: #fff;
+        background: linear-gradient(135deg, rgba(99,102,241,0.28) 0%, rgba(99,102,241,0.1) 100%);
+        border-left: 2.5px solid #818cf8;
+        padding-left: calc(0.75rem - 2.5px);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+    }
+
+    /* ── Stat cards ──────────────────────────────────────────────── */
+    .stat-card {
+        @apply card relative overflow-hidden transition-all duration-200;
+    }
+    .stat-card:hover {
+        @apply -translate-y-0.5;
+        box-shadow: 0 4px 20px rgba(15,23,42,0.08);
+    }
+    .stat-accent {
+        @apply absolute top-0 left-0 right-0 h-0.5 rounded-t-2xl;
+        background: linear-gradient(90deg, #6366f1, #8b5cf6, #a78bfa);
+    }
+    .stat-accent-amber {
+        @apply absolute top-0 left-0 right-0 h-0.5 rounded-t-2xl;
+        background: linear-gradient(90deg, #f59e0b, #f97316);
+    }
+
+    /* ── Hover card ──────────────────────────────────────────────── */
+    .hover-card {
+        @apply transition-all duration-200;
+    }
+    .hover-card:hover {
+        @apply -translate-y-0.5;
+        box-shadow: 0 6px 24px rgba(15,23,42,0.09);
+    }
+
+    /* ── Flash messages ──────────────────────────────────────────── */
+    .flash-success {
+        @apply flex items-center gap-2.5 rounded-xl bg-emerald-50 border border-emerald-200
+               text-emerald-800 px-4 py-3 text-sm animate-slide-down;
+    }
+    .flash-error {
+        @apply rounded-xl bg-rose-50 border border-rose-200 text-rose-800
+               px-4 py-3 text-sm animate-slide-down;
+    }
+
+    /* ── Page content ────────────────────────────────────────────── */
+    .page-content { @apply animate-fade-up; }
+
+    /* ── Table ───────────────────────────────────────────────────── */
+    .table-row-hover tbody tr {
+        @apply transition-colors duration-150 hover:bg-slate-50/80;
+    }
+}
