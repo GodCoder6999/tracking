@@ -61,7 +61,7 @@
             </select>
             <div class="flex gap-2">
                 <button class="btn-primary flex-1">Apply</button>
-                @if(request()->hasAny(['from','to','client_id','order_number','payment_status','dispatch_status','product_id']))
+                @if(request()->hasAny(['from','to','client_id','search_label','order_number','payment_status','dispatch_status','product_id']))
                     <a href="{{ route('dealer.dashboard') }}" class="btn-secondary">Clear</a>
                 @endif
             </div>
@@ -69,7 +69,8 @@
     </form>
 
     {{-- Active filter summary --}}
-    @if(request()->hasAny(['from','to','client_id','order_number','payment_status','dispatch_status','product_id']))
+    @php $anyFilter = request()->hasAny(['from','to','client_id','search_label','order_number','payment_status','dispatch_status','product_id']); @endphp
+    @if($anyFilter)
     <p class="text-xs text-slate-500 -mt-2">
         Filtered:
         @if(request('from')) from <strong>{{ \Carbon\Carbon::parse(request('from'))->format('d M Y') }}</strong>@endif
@@ -77,24 +78,31 @@
         @if(request('search_label')) &middot; client: <strong>{{ request('search_label') }}</strong>@endif
         @if(request('order_number')) &middot; order: <strong>{{ request('order_number') }}</strong>@endif
         @if(request('payment_status')) &middot; payment: <strong>{{ ucfirst(request('payment_status')) }}</strong>@endif
-        @if(request('dispatch_status')) &middot; dispatch: <strong>{{ ucfirst(request('dispatch_status')) }}</strong>@endif
+        @if(request('dispatch_status')) &middot; status: <strong>{{ ucfirst(request('dispatch_status')) }}</strong>@endif
         @if(request('product_id')) &middot; product: <strong>{{ $products->firstWhere('id', request('product_id'))?->name }}</strong>@endif
+        &middot; <strong>{{ $stats['orders'] }}</strong> order(s) found
     </p>
     @endif
 
     {{-- ── STAT CARDS ─────────────────────────────────────────────── --}}
     <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-        @include('partials.stat', ['label' => 'My Clients',       'value' => $stats['clients']])
-        @include('partials.stat', ['label' => 'Orders',           'value' => $stats['orders']])
+        @include('partials.stat', ['label' => $anyFilter ? 'Clients (filtered)' : 'My Clients', 'value' => $stats['clients']])
+        @include('partials.stat', ['label' => $anyFilter ? 'Orders (filtered)'  : 'Orders',     'value' => $stats['orders']])
         @include('partials.stat', ['label' => 'Revenue',          'value' => '₹'.number_format($stats['revenue'], 2)])
         @include('partials.stat', ['label' => 'Received',         'value' => '₹'.number_format($stats['received'], 2)])
         @include('partials.stat', ['label' => 'Due',              'value' => '₹'.number_format($stats['due'], 2)])
         @include('partials.stat', ['label' => 'Pending Dispatch', 'value' => $stats['pending_dispatch']])
     </div>
 
-    {{-- ── RECENT ORDERS ───────────────────────────────────────────── --}}
+    {{-- ── RECENT / FILTERED ORDERS ───────────────────────────────── --}}
     <div class="flex items-center justify-between">
-        <h2 class="font-semibold text-slate-900">Recent Orders</h2>
+        <h2 class="font-semibold text-slate-900">
+            @if($anyFilter)
+                Filtered Orders <span class="text-slate-400 font-normal text-sm">({{ $recent->count() }})</span>
+            @else
+                Recent Orders
+            @endif
+        </h2>
         <a href="{{ route('dealer.orders.create') }}" class="btn-primary">+ New Order</a>
     </div>
 
@@ -102,11 +110,11 @@
         @forelse ($recent as $o)
             @include('partials.order-card', ['o' => $o, 'cardRoute' => 'dealer.orders.show'])
         @empty
-            <div class="card text-center text-slate-400 py-8">No orders yet.</div>
+            <div class="card text-center text-slate-400 py-8">No orders match the selected filters.</div>
         @endforelse
     </div>
 
-    @if ($recent->isNotEmpty())
+    @if ($recent->isNotEmpty() && !$anyFilter)
     <div class="text-center">
         <a href="{{ route('dealer.orders.index') }}" class="text-sm text-brand-600 hover:underline">View all orders →</a>
     </div>

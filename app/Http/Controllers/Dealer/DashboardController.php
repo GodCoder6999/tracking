@@ -35,8 +35,12 @@ class DashboardController extends Controller
             ->when($dispatchStatus, fn($q) => $q->where('dispatch_status', $dispatchStatus))
             ->when($productId,      fn($q) => $q->whereHas('items', fn($q2) => $q2->where('product_id', $productId)));
 
+        $isFiltered = $from || $to || $clientId || $orderNumber || $paymentStatus || $dispatchStatus || $productId;
+
         $stats = [
-            'clients'          => User::where('role', User::ROLE_CLIENT)->where('created_by', $dealer->id)->count(),
+            'clients'          => $isFiltered
+                ? $base()->distinct()->count('client_id')
+                : User::where('role', User::ROLE_CLIENT)->where('created_by', $dealer->id)->count(),
             'orders'           => $base()->count(),
             'revenue'          => (float) $base()->sum('total_amount'),
             'received'         => (float) $base()->sum('total_received'),
@@ -64,7 +68,7 @@ class DashboardController extends Controller
             ->when($dispatchStatus, fn($q) => $q->where('dispatch_status', $dispatchStatus))
             ->when($productId,      fn($q) => $q->whereHas('items', fn($q2) => $q2->where('product_id', $productId)))
             ->latest()
-            ->limit(20)
+            ->when(!$isFiltered, fn($q) => $q->limit(20))
             ->get();
 
         return view('dealer.dashboard', compact('stats', 'clients', 'products', 'recent'));
