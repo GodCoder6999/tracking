@@ -11,7 +11,7 @@ class OrderController extends Controller
     public function show(Order $order)
     {
         abort_unless($order->client_id === auth()->id(), 403);
-        $order->load(['dealer', 'items.product', 'payments', 'dispatches']);
+        $order->load(['dealer', 'items.product', 'payments', 'dispatches.dispatchItems']);
         return view('client.orders.show', compact('order'));
     }
 

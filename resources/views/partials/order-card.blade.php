@@ -19,7 +19,7 @@
                 <span class="text-xs font-medium text-slate-600">{{ $o->client->name }}</span>
             @endif
             @if ($showDealer && isset($o->dealer))
-                <span class="text-xs text-slate-400">via {{ $o->dealer->name }}</span>
+                <span class="text-xs text-slate-400">Seller: <span class="font-medium text-slate-500">{{ $o->dealer->name }}</span></span>
             @endif
         </div>
         <div class="flex items-center gap-1.5 flex-wrap">

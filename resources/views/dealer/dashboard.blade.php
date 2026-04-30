@@ -1,4 +1,4 @@
-<x-layouts.app heading="Dealer Dashboard">
+<x-layouts.app heading="Seller Dashboard">
 
     {{-- ── FILTERS ────────────────────────────────────────────────── --}}
     <form method="GET" class="card space-y-3" id="dashboard-filter">

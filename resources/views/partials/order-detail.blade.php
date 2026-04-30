@@ -9,10 +9,8 @@
     // Per-item dispatch totals: item_id => dispatched_qty
     $dispatchedPerItem = [];
     foreach ($order->dispatches as $d) {
-        if ($d->relationLoaded('dispatchItems')) {
-            foreach ($d->dispatchItems as $di) {
-                $dispatchedPerItem[$di->order_item_id] = ($dispatchedPerItem[$di->order_item_id] ?? 0) + $di->qty;
-            }
+        foreach ($d->dispatchItems ?? [] as $di) {
+            $dispatchedPerItem[$di->order_item_id] = ($dispatchedPerItem[$di->order_item_id] ?? 0) + $di->qty;
         }
     }
     $courierLinks = [
@@ -165,8 +163,8 @@
         @endif
     </div>
 
-    {{-- Per-item dispatch status table (dealer only) --}}
-    @if($isDealer && $order->items->isNotEmpty())
+    {{-- Per-item dispatch status table (all roles) --}}
+    @if($order->items->isNotEmpty())
     <div class="px-4 py-3 border-b bg-slate-50">
         <table class="w-full text-xs">
             <thead>
@@ -334,7 +332,7 @@
     </div>
     <table class="w-full text-sm">
         <thead class="bg-slate-50 text-slate-500">
-            <tr><th class="text-left px-4 py-2">Date</th><th>Qty</th><th>Due Qty</th><th>Courier</th><th>Tracking</th><th>Bill</th></tr>
+            <tr><th class="text-left px-4 py-2">Date</th><th>Items Dispatched</th><th>Qty</th><th>Due Qty</th><th>Courier</th><th>Tracking</th><th>Bill</th></tr>
         </thead>
         <tbody class="divide-y">
             @forelse ($order->dispatches as $d)
@@ -345,9 +343,22 @@
                         $base = $courierLinks[$key] ?? null;
                         if ($base) $trackUrl = $base . urlencode($d->tracking_number);
                     }
+                    $itemsMap = $order->items->keyBy('id');
                 @endphp
                 <tr>
                     <td class="px-4 py-2">{{ $d->dispatch_date?->format('d M Y') }}</td>
+                    <td class="py-2 text-xs text-slate-600">
+                        @if(($d->dispatchItems ?? collect())->isNotEmpty())
+                            <ul class="space-y-0.5">
+                                @foreach($d->dispatchItems as $di)
+                                    @php $itm = $itemsMap->get($di->order_item_id); @endphp
+                                    <li>{{ $itm?->particulars ?? '—' }} <span class="text-slate-400">×{{ $di->qty }}</span></li>
+                                @endforeach
+                            </ul>
+                        @else
+                            <span class="text-slate-400">—</span>
+                        @endif
+                    </td>
                     <td class="text-center">{{ $d->dispatch_qty }}</td>
                     <td class="text-center">{{ $d->due_qty }}</td>
                     <td class="text-center">{{ $d->courier ?? '—' }}</td>
@@ -364,7 +375,7 @@
                     <td class="text-center">@if ($d->bill_path)<a target="_blank" class="text-brand-600 hover:underline" href="{{ asset('storage/'.$d->bill_path) }}">View</a>@else — @endif</td>
                 </tr>
             @empty
-                <tr><td colspan="6" class="px-4 py-4 text-center text-slate-400">No dispatches yet.</td></tr>
+                <tr><td colspan="7" class="px-4 py-4 text-center text-slate-400">No dispatches yet.</td></tr>
             @endforelse
         </tbody>
     </table>
