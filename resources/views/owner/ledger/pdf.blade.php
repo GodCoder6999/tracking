@@ -75,7 +75,7 @@
         Period: <strong>All time</strong>
     @endif
     &nbsp;&nbsp;|&nbsp;&nbsp;
-    Total Dealers: <strong>{{ $dealers->count() }}</strong>
+    Total Sellers: <strong>{{ $dealers->count() }}</strong>
     &nbsp;&nbsp;|&nbsp;&nbsp;
     Total Orders: <strong>{{ $ordersByDealer->sum(fn($o) => $o->count()) }}</strong>
 </div>
@@ -163,7 +163,7 @@
 
 {{-- Grand Total --}}
 <div class="grand-total">
-    <div class="grand-total-header">Grand Total — All Dealers</div>
+    <div class="grand-total-header">Grand Total — All Sellers</div>
     <table>
         <thead>
             <tr>

@@ -1,6 +1,12 @@
 <x-layouts.app heading="All Orders">
-    <form method="GET" class="card grid grid-cols-2 md:grid-cols-6 gap-3">
+    <form method="GET" class="card grid grid-cols-2 md:grid-cols-7 gap-3">
         <input name="q" placeholder="Order #" class="input" value="{{ request('q') }}">
+        <select name="dealer_id" class="input">
+            <option value="">All Sellers</option>
+            @foreach($dealers as $d)
+                <option value="{{ $d->id }}" @selected(request('dealer_id') == $d->id)>{{ $d->name }}</option>
+            @endforeach
+        </select>
         <select name="payment_status" class="input">
             <option value="">Any payment</option>
             @foreach (['unpaid', 'partial', 'paid'] as $s)<option value="{{ $s }}" @selected(request('payment_status')===$s)>{{ ucfirst($s) }}</option>@endforeach
@@ -32,7 +38,7 @@
             </svg>
         </button>
         <div x-show="open" x-transition class="mt-4 pt-4 border-t border-slate-100">
-            <p class="text-xs text-slate-500 mb-3">Select a date range and optionally a dealer, then download a full ledger PDF.</p>
+            <p class="text-xs text-slate-500 mb-3">Select a date range and optionally a seller, then download a full ledger PDF.</p>
             <form method="GET" action="{{ route('owner.ledger.download') }}" class="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div>
                     <label class="block text-xs font-medium text-slate-600 mb-1">From Date</label>
@@ -43,9 +49,9 @@
                     <input type="date" name="to" class="input" value="{{ request('to') }}">
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-slate-600 mb-1">Dealer (optional)</label>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Seller (optional)</label>
                     <select name="dealer_id" class="input">
-                        <option value="">All Dealers</option>
+                        <option value="">All Sellers</option>
                         @foreach($dealers as $d)
                             <option value="{{ $d->id }}" @selected(request('dealer_id') == $d->id)>{{ $d->name }}</option>
                         @endforeach

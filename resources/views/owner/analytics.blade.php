@@ -20,9 +20,9 @@
             <input type="date" name="to" value="{{ request('to') }}" class="input">
         </div>
         <div class="flex flex-col gap-1">
-            <label class="text-xs text-slate-500 font-medium">Dealer</label>
+            <label class="text-xs text-slate-500 font-medium">Seller</label>
             <select name="dealer_id" class="input min-w-[160px]">
-                <option value="">All Dealers</option>
+                <option value="">All Sellers</option>
                 @foreach ($dealersList as $dl)
                     <option value="{{ $dl->id }}" @selected(request('dealer_id') == $dl->id)>{{ $dl->name }}</option>
                 @endforeach
@@ -41,7 +41,7 @@
     @include('partials.stat', ['label' => 'Total Received', 'value' => '₹'.number_format($totals['total_received'], 0)])
     @include('partials.stat', ['label' => 'Pending Due',    'value' => '₹'.number_format($totals['total_due'],      0), 'highlight' => $totals['total_due'] > 0])
     @include('partials.stat', ['label' => 'Orders',         'value' => $totals['total_orders']])
-    @include('partials.stat', ['label' => 'Dealers',        'value' => $totals['total_dealers']])
+    @include('partials.stat', ['label' => 'Sellers',        'value' => $totals['total_dealers']])
     @include('partials.stat', ['label' => 'Clients',        'value' => $totals['total_clients']])
 </div>
 
@@ -49,7 +49,7 @@
 <x-analytics-section label="Revenue Trends" />
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
     <div class="card lg:col-span-2">
-        <h3 class="font-semibold text-slate-900 mb-4">Network vs Top Dealers — Monthly Revenue</h3>
+        <h3 class="font-semibold text-slate-900 mb-4">Network vs Top Sellers — Monthly Revenue</h3>
         <canvas id="multiLineChart" height="110"></canvas>
     </div>
     <div class="card">
@@ -59,7 +59,7 @@
 </div>
 
 {{-- ── DEALER RANKINGS ── --}}
-<x-analytics-section label="Dealer Rankings" />
+<x-analytics-section label="Seller Rankings" />
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
     <div class="card">
         <h3 class="font-semibold text-slate-900 mb-4">By Revenue</h3>
@@ -76,15 +76,15 @@
 </div>
 
 {{-- ── DEALER EFFICIENCY + CLIENT STATUS ── --}}
-<x-analytics-section label="Dealer Efficiency & Client Status" />
+<x-analytics-section label="Seller Efficiency & Client Status" />
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
     <div class="card">
         <h3 class="font-semibold text-slate-900 mb-1">Scatter — Clients vs Avg Revenue per Client</h3>
-        <p class="text-xs text-slate-400 mb-3">Each dot = one dealer. Hover for details.</p>
+        <p class="text-xs text-slate-400 mb-3">Each dot = one seller. Hover for details.</p>
         <canvas id="scatterChart" height="180"></canvas>
     </div>
     <div class="card">
-        <h3 class="font-semibold text-slate-900 mb-1">Stacked — Client Status per Dealer</h3>
+        <h3 class="font-semibold text-slate-900 mb-1">Stacked — Client Status per Seller</h3>
         <p class="text-xs text-slate-400 mb-3">Active (has orders) · Onboarding (no orders yet) · Churned (inactive)</p>
         <canvas id="stackedClientChart" height="180"></canvas>
     </div>
@@ -131,7 +131,7 @@
 <x-analytics-section label="Market Share & Products" />
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
     <div class="card">
-        <h3 class="font-semibold text-slate-900 mb-4">Revenue Treemap — Dealer Market Share</h3>
+        <h3 class="font-semibold text-slate-900 mb-4">Revenue Treemap — Seller Market Share</h3>
         <canvas id="treemapChart" height="220"></canvas>
     </div>
     <div class="card">
@@ -141,13 +141,13 @@
 </div>
 
 {{-- ── DEALER DATA TABLE ── --}}
-<x-analytics-section label="Dealer Breakdown" />
+<x-analytics-section label="Seller Breakdown" />
 <div class="card p-0 overflow-hidden">
     <div class="overflow-x-auto">
         <table class="w-full text-sm" id="dealerTable">
             <thead class="bg-slate-50 text-slate-500 text-left">
                 <tr>
-                    <th class="px-4 py-3">Dealer</th>
+                    <th class="px-4 py-3">Seller</th>
                     <th class="px-4 py-3 text-right cursor-pointer hover:text-slate-900" onclick="sortTable(1)">Revenue ▾</th>
                     <th class="px-4 py-3 text-right cursor-pointer hover:text-slate-900" onclick="sortTable(2)">Orders</th>
                     <th class="px-4 py-3 text-right cursor-pointer hover:text-slate-900" onclick="sortTable(3)">Clients</th>

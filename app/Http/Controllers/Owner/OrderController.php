@@ -29,7 +29,7 @@ class OrderController extends Controller
 
     public function show(Order $order)
     {
-        $order->load(['client', 'dealer', 'items.product', 'payments', 'dispatches']);
+        $order->load(['client', 'dealer', 'items.product', 'payments', 'dispatches.dispatchItems']);
         return view('owner.orders.show', compact('order'));
     }
 }

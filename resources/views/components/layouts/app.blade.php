@@ -23,7 +23,7 @@
             </div>
             <div>
                 <div class="text-sm font-bold text-white tracking-wide">{{ config('app.name') }}</div>
-                <div class="text-xs font-medium capitalize" style="color:#a5b4fc">{{ auth()->user()->role }}</div>
+                <div class="text-xs font-medium capitalize" style="color:#a5b4fc">{{ auth()->user()->role === 'dealer' ? 'seller' : auth()->user()->role }}</div>
             </div>
         </div>
 

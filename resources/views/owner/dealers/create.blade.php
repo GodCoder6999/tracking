@@ -1,4 +1,4 @@
-<x-layouts.app heading="New Dealer">
+<x-layouts.app heading="New Seller">
     <form method="POST" action="{{ route('owner.dealers.store') }}" class="card space-y-4 max-w-2xl">
         @csrf
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -10,7 +10,7 @@
         </div>
         <div class="flex gap-2 justify-end">
             <a href="{{ route('owner.dealers.index') }}" class="btn-secondary">Cancel</a>
-            <button class="btn-primary">Create Dealer</button>
+            <button class="btn-primary">Create Seller</button>
         </div>
     </form>
 </x-layouts.app>

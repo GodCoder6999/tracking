@@ -1,4 +1,4 @@
-<x-layouts.app heading="Edit Dealer">
+<x-layouts.app heading="Edit Seller">
     <form method="POST" action="{{ route('owner.dealers.update', $dealer) }}" class="card space-y-4 max-w-2xl">
         @csrf @method('PUT')
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">

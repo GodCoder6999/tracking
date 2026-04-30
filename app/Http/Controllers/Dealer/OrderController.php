@@ -133,7 +133,7 @@ class OrderController extends Controller
     public function show(Order $order)
     {
         $this->authorizeOrder($order);
-        $order->load(['client', 'items.product', 'payments', 'dispatches']);
+        $order->load(['client', 'items.product', 'payments', 'dispatches.dispatchItems']);
         return view('dealer.orders.show', compact('order'));
     }
 

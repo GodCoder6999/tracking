@@ -1,4 +1,4 @@
-<x-layouts.app heading="{{ $dealer->name }}">
+<x-layouts.app heading="Seller: {{ $dealer->name }}">
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         @include('partials.stat', ['label' => 'Clients', 'value' => $dealer->clients_count])
         @include('partials.stat', ['label' => 'Orders',  'value' => $dealer->orders_as_dealer_count])

@@ -1,4 +1,4 @@
-<x-layouts.app heading="Dealers">
+<x-layouts.app heading="Sellers">
     <div class="flex flex-wrap items-center justify-between gap-3">
         <form method="GET" class="flex gap-2 flex-1 max-w-sm" id="dealer-search-form">
             <input type="search" id="dealer-q" name="q" value="{{ request('q') }}" class="input" placeholder="Search name, email, phone…"
@@ -16,7 +16,7 @@
         </script>
         <div class="flex gap-2">
             <a href="{{ route('owner.dealers.import') }}" class="btn-secondary">↑ Import</a>
-            <a href="{{ route('owner.dealers.create') }}" class="btn-primary">+ New Dealer</a>
+            <a href="{{ route('owner.dealers.create') }}" class="btn-primary">+ New Seller</a>
         </div>
     </div>
 
@@ -38,14 +38,14 @@
                         <td class="text-center">₹{{ number_format((float) $d->revenue, 0) }}</td>
                         <td class="text-right px-4 space-x-2">
                             <a href="{{ route('owner.dealers.edit', $d) }}" class="text-slate-600 hover:underline">Edit</a>
-                            <form method="POST" action="{{ route('owner.dealers.destroy', $d) }}" class="inline" onsubmit="return confirm('Delete dealer?')">
+                            <form method="POST" action="{{ route('owner.dealers.destroy', $d) }}" class="inline" onsubmit="return confirm('Delete seller?')">
                                 @csrf @method('DELETE')
                                 <button class="text-red-600 hover:underline">Delete</button>
                             </form>
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="6" class="px-4 py-6 text-center text-slate-400">No dealers yet.</td></tr>
+                    <tr><td colspan="6" class="px-4 py-6 text-center text-slate-400">No sellers yet.</td></tr>
                 @endforelse
             </tbody>
         </table>

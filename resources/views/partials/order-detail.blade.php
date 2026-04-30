@@ -6,6 +6,17 @@
     $dispatchedQty = (int) $order->dispatches->sum('dispatch_qty');
     $remainingQty  = max(0, $totalQty - $dispatchedQty);
 
+    // Per-item dispatch totals: item_id => dispatched_qty
+    $dispatchedPerItem = [];
+    foreach ($order->dispatches as $d) {
+        if ($d->relationLoaded('dispatchItems')) {
+            foreach ($d->dispatchItems as $di) {
+                $dispatchedPerItem[$di->order_item_id] = ($dispatchedPerItem[$di->order_item_id] ?? 0) + $di->qty;
+            }
+        }
+    }
+@endphp
+
     $courierLinks = [
         'delhivery'         => 'https://www.delhivery.com/track-v2/package/',
         'bluedart'          => 'https://www.bluedart.com/tracking?trackFor=0&field1=',
@@ -50,7 +61,7 @@
     </div>
     <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
         <div><div class="text-slate-500">Client</div><div class="font-medium">{{ $order->client->name }}</div><div class="text-slate-500">{{ $order->client->phone }} &middot; {{ $order->client->email }}</div></div>
-        <div><div class="text-slate-500">Dealer</div><div class="font-medium">{{ $order->dealer->name }}</div><div class="text-slate-500">{{ $order->dealer->email }}</div></div>
+        <div><div class="text-slate-500">Seller</div><div class="font-medium">{{ $order->dealer->name }}</div><div class="text-slate-500">{{ $order->dealer->email }}</div></div>
     </div>
     @if ($order->shipping_address || $order->billing_address)
     <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
@@ -140,14 +151,74 @@
 </div>
 @endif
 
-<div class="card p-0 overflow-hidden">
-    <div class="p-4 border-b font-semibold">Items</div>
+<div class="card p-0 overflow-hidden" x-data="{ itemFilter: 'all' }">
+    <div class="p-4 border-b font-semibold flex flex-wrap items-center justify-between gap-3">
+        <span>Items</span>
+        @if($isDealer)
+        <div class="flex items-center gap-2 text-xs">
+            <span class="text-slate-500 font-normal">Filter:</span>
+            @foreach(['all' => 'All', 'pending' => 'Pending', 'partial' => 'Partial', 'dispatched' => 'Dispatched'] as $val => $label)
+            <button type="button"
+                    @click="itemFilter = '{{ $val }}'"
+                    :class="itemFilter === '{{ $val }}' ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+                    class="px-2.5 py-1 rounded-full font-medium transition-colors">{{ $label }}</button>
+            @endforeach
+        </div>
+        @endif
+    </div>
+
+    {{-- Per-item dispatch status table (dealer only) --}}
+    @if($isDealer && $order->items->isNotEmpty())
+    <div class="px-4 py-3 border-b bg-slate-50">
+        <table class="w-full text-xs">
+            <thead>
+                <tr class="text-slate-500">
+                    <th class="text-left py-1 font-medium">Product</th>
+                    <th class="text-center py-1 font-medium">Ordered</th>
+                    <th class="text-center py-1 font-medium">Dispatched</th>
+                    <th class="text-center py-1 font-medium">Remaining</th>
+                    <th class="text-center py-1 font-medium">Status</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                @foreach($order->items as $item)
+                @php
+                    $dQty = $dispatchedPerItem[$item->id] ?? 0;
+                    $rQty = max(0, $item->qty - $dQty);
+                    $iStatus = $dQty === 0 ? 'pending' : ($rQty === 0 ? 'dispatched' : 'partial');
+                @endphp
+                <tr x-show="itemFilter === 'all' || itemFilter === '{{ $iStatus }}'">
+                    <td class="py-1.5 font-medium text-slate-800">{{ $item->particulars }}</td>
+                    <td class="text-center py-1.5">{{ $item->qty }}</td>
+                    <td class="text-center py-1.5">{{ $dQty }}</td>
+                    <td class="text-center py-1.5 {{ $rQty > 0 ? 'text-rose-600 font-semibold' : 'text-emerald-600' }}">{{ $rQty }}</td>
+                    <td class="text-center py-1.5">
+                        @if($iStatus === 'dispatched')
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">Dispatched</span>
+                        @elseif($iStatus === 'partial')
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">Partial</span>
+                        @else
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-500">Pending</span>
+                        @endif
+                    </td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+    @endif
 
     {{-- Catalog tiles --}}
     @if ($order->items->isNotEmpty())
-    <div class="flex flex-wrap gap-3 px-4 py-4 border-b bg-slate-50">
+    <div class="flex flex-wrap gap-3 px-4 py-4 border-b bg-white">
         @foreach ($order->items as $item)
-        <div class="flex items-center gap-3 border border-slate-200 rounded-lg px-3 py-2 bg-white" style="max-width:220px">
+        @php
+            $dQtyTile = $dispatchedPerItem[$item->id] ?? 0;
+            $rQtyTile = max(0, $item->qty - $dQtyTile);
+            $iStatusTile = $dQtyTile === 0 ? 'pending' : ($rQtyTile === 0 ? 'dispatched' : 'partial');
+        @endphp
+        <div x-show="!{{ $isDealer ? 'true' : 'false' }} || itemFilter === 'all' || itemFilter === '{{ $iStatusTile }}'"
+             class="flex items-center gap-3 border border-slate-200 rounded-lg px-3 py-2 bg-slate-50" style="max-width:220px">
             <img src="https://picsum.photos/seed/{{ urlencode(strtolower(trim($item->particulars))) }}/56/56"
                  class="w-14 h-14 rounded object-cover flex-shrink-0"
                  alt="{{ $item->particulars }}"
@@ -159,6 +230,7 @@
             <div class="min-w-0">
                 <div class="text-xs font-medium text-slate-800 truncate" title="{{ $item->particulars }}">{{ $item->particulars }}</div>
                 <div class="text-xs text-slate-500">×{{ $item->qty }} @ ₹{{ number_format((float)$item->rate, 0) }}</div>
+                <div class="text-xs font-semibold text-slate-800">₹{{ number_format((float)$item->amount, 2) }}</div>
                 @if ((float)$item->discount_percent > 0)
                 <div class="text-xs text-green-600">−{{ number_format((float)$item->discount_percent, 0) }}% disc</div>
                 @endif
@@ -300,27 +372,67 @@
     </table>
 
     @if (! $readonly)
-    <div class="border-t bg-slate-50">
-        <form id="dispatch-form-{{ $order->id }}" method="POST" action="{{ route('dealer.orders.dispatches.store', $order) }}" enctype="multipart/form-data" class="p-4 grid grid-cols-1 md:grid-cols-5 gap-3">
+    <div class="border-t bg-slate-50" x-data="dispatchForm({{ $order->items->map(fn($i) => ['id' => $i->id, 'name' => $i->particulars, 'qty' => $i->qty, 'dispatched' => $dispatchedPerItem[$i->id] ?? 0])->values()->toJson() }})">
+        <form id="dispatch-form-{{ $order->id }}" method="POST" action="{{ route('dealer.orders.dispatches.store', $order) }}" enctype="multipart/form-data" class="p-4 space-y-4">
             @csrf
-            <input type="number" name="dispatch_qty" class="input" placeholder="Qty" required>
-            <input type="date" name="dispatch_date" class="input" value="{{ now()->toDateString() }}" required>
-            <input name="courier" class="input" placeholder="Courier" list="courier-list-{{ $order->id }}" autocomplete="off">
-            <datalist id="courier-list-{{ $order->id }}">
-                <option value="Delhivery">
-                <option value="BlueDart">
-                <option value="DTDC">
-                <option value="Xpressbees">
-                <option value="Ekart">
-                <option value="FedEx">
-                <option value="DHL">
-                <option value="Shadowfax">
-                <option value="India Post">
-                <option value="Amazon Logistics">
-            </datalist>
-            <input name="tracking_number" class="input" placeholder="Tracking #">
-            <input type="url" name="tracking_url" class="input md:col-span-2" placeholder="Tracking URL for client (optional, overrides auto-link)">
-            <input type="file" name="bill" class="input md:col-span-3" accept=".pdf,image/*">
+
+            {{-- Per-item qty selector --}}
+            @if($order->items->isNotEmpty())
+            <div>
+                <div class="text-xs font-semibold text-slate-600 mb-2 uppercase tracking-wide">Select Items to Dispatch</div>
+                <div class="space-y-2">
+                    @foreach($order->items as $item)
+                    @php $maxDispatch = max(0, $item->qty - ($dispatchedPerItem[$item->id] ?? 0)); @endphp
+                    <div class="flex items-center gap-3 bg-white border border-slate-200 rounded-lg px-3 py-2">
+                        <div class="flex-1 min-w-0">
+                            <div class="text-xs font-medium text-slate-800 truncate">{{ $item->particulars }}</div>
+                            <div class="text-xs text-slate-500">Ordered: {{ $item->qty }} &middot; Remaining: {{ $maxDispatch }}</div>
+                        </div>
+                        <div class="flex items-center gap-1.5 flex-shrink-0">
+                            <label class="text-xs text-slate-500">Qty:</label>
+                            <input type="number"
+                                   name="item_qtys[{{ $item->id }}]"
+                                   class="input w-20 text-center text-sm py-1"
+                                   min="0" max="{{ $maxDispatch }}"
+                                   value="0"
+                                   @if($maxDispatch === 0) disabled @endif
+                                   x-model.number="items[{{ $loop->index }}].dispatchQty"
+                                   @input="syncTotal">
+                        </div>
+                        @if($maxDispatch === 0)
+                        <span class="text-xs text-emerald-600 font-medium flex-shrink-0">Done</span>
+                        @endif
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+            @endif
+
+            {{-- Main dispatch fields --}}
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
+                <div class="flex items-center gap-2">
+                    <input type="number" name="dispatch_qty" class="input flex-1" placeholder="Total Qty" required
+                           x-model.number="totalQty" min="1">
+                    <span class="text-xs text-slate-400 flex-shrink-0">units</span>
+                </div>
+                <input type="date" name="dispatch_date" class="input" value="{{ now()->toDateString() }}" required>
+                <input name="courier" class="input" placeholder="Courier" list="courier-list-{{ $order->id }}" autocomplete="off">
+                <datalist id="courier-list-{{ $order->id }}">
+                    <option value="Delhivery">
+                    <option value="BlueDart">
+                    <option value="DTDC">
+                    <option value="Xpressbees">
+                    <option value="Ekart">
+                    <option value="FedEx">
+                    <option value="DHL">
+                    <option value="Shadowfax">
+                    <option value="India Post">
+                    <option value="Amazon Logistics">
+                </datalist>
+                <input name="tracking_number" class="input" placeholder="Tracking #">
+                <input type="url" name="tracking_url" class="input md:col-span-2" placeholder="Tracking URL for client (optional, overrides auto-link)">
+                <input type="file" name="bill" class="input md:col-span-3" accept=".pdf,image/*">
+            </div>
         </form>
         <div class="px-4 pb-4 flex justify-between">
             <form method="POST" action="{{ route('dealer.orders.dispatches.delivered', $order) }}" onsubmit="return confirm('Mark delivered?')">

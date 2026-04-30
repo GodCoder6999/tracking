@@ -1,12 +1,12 @@
-<x-layouts.app heading="Import Dealers">
+<x-layouts.app heading="Import Sellers">
 
     <div class="flex items-center gap-3">
-        <a href="{{ route('owner.dealers.index') }}" class="btn-secondary">← Back to Dealers</a>
+        <a href="{{ route('owner.dealers.index') }}" class="btn-secondary">← Back to Sellers</a>
         <a href="{{ route('owner.dealers.create') }}" class="btn-secondary">+ Add Manually</a>
     </div>
 
     <div class="card">
-        <h2 class="font-semibold mb-1">Bulk Import Dealers</h2>
+        <h2 class="font-semibold mb-1">Bulk Import Sellers</h2>
         <p class="text-sm text-slate-500 mb-4">Upload a CSV or JSON file. First row must be column headers.</p>
 
         <div class="mb-4 bg-slate-50 border rounded-lg p-3 text-xs text-slate-600 font-mono">
@@ -58,7 +58,7 @@
 
     @isset($created)
     <div class="card">
-        <h3 class="font-semibold mb-3 text-green-700">✓ {{ count($created) }} dealer(s) created</h3>
+        <h3 class="font-semibold mb-3 text-green-700">✓ {{ count($created) }} seller(s) created</h3>
         @if (count($created))
         <div class="overflow-x-auto">
             <table class="w-full text-sm">
