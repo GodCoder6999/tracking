@@ -28,7 +28,9 @@ class DealerController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        return view('owner.dealers.index', compact('dealers'));
+        $allDealers = User::where('role', User::ROLE_DEALER)->orderBy('name')->get(['id', 'name']);
+
+        return view('owner.dealers.index', compact('dealers', 'allDealers'));
     }
 
     public function create()
