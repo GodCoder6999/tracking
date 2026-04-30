@@ -15,8 +15,6 @@
             }
         }
     }
-@endphp
-
     $courierLinks = [
         'delhivery'         => 'https://www.delhivery.com/track-v2/package/',
         'bluedart'          => 'https://www.bluedart.com/tracking?trackFor=0&field1=',
