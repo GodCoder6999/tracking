@@ -74,6 +74,14 @@ const api = {
     clientDelete: (id) =>
         http.delete(`/dealer/clients/${id}`).then(r => r.data),
 
+    clientImport: (formData) =>
+        http.post('/dealer/clients/import', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        }).then(r => r.data),
+
+    ledger: (params = {}) =>
+        http.get('/dealer/ledger', { params, responseType: 'blob' }).then(r => r.data),
+
     products: () =>
         http.get('/dealer/products').then(r => r.data),
 

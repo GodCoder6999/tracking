@@ -9,12 +9,17 @@ use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\User;
 use App\Notifications\OrderStatusUpdated;
+use App\Services\UserImportService;
 use App\Support\OrderMath;
 use App\Support\OrderNumber;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class DealerController extends Controller
 {
@@ -192,6 +197,9 @@ class DealerController extends Controller
     {
         $clients = User::where('role', User::ROLE_CLIENT)
             ->where('created_by', $request->user()->id)
+            ->withCount('ordersAsClient')
+            ->withSum('ordersAsClient as revenue',  'total_amount')
+            ->withSum('ordersAsClient as due_total', 'due_amount')
             ->orderBy('name')
             ->get();
 
@@ -201,15 +209,19 @@ class DealerController extends Controller
     public function clientStore(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'name'    => ['required', 'string', 'max:100'],
-            'email'   => ['required', 'email', 'unique:users,email'],
-            'phone'   => ['nullable', 'string', 'max:20'],
-            'address' => ['nullable', 'string', 'max:255'],
+            'name'     => ['required', 'string', 'max:120'],
+            'email'    => ['required', 'email', 'unique:users,email'],
+            'phone'    => ['nullable', 'string', 'max:40'],
+            'address'  => ['nullable', 'string', 'max:500'],
+            'password' => ['nullable', 'string', 'min:6'],
         ]);
 
         $client = User::create([
-            ...$data,
-            'password'   => bcrypt(\Str::random(16)),
+            'name'       => $data['name'],
+            'email'      => $data['email'],
+            'phone'      => $data['phone'] ?? null,
+            'address'    => $data['address'] ?? null,
+            'password'   => Hash::make($data['password'] ?? Str::random(12)),
             'role'       => User::ROLE_CLIENT,
             'created_by' => $request->user()->id,
             'is_active'  => true,
@@ -223,14 +235,116 @@ class DealerController extends Controller
         abort_unless($client->created_by === $request->user()->id && $client->isClient(), 403);
 
         $data = $request->validate([
-            'name'    => ['required', 'string', 'max:100'],
-            'phone'   => ['nullable', 'string', 'max:20'],
-            'address' => ['nullable', 'string', 'max:255'],
+            'name'     => ['required', 'string', 'max:120'],
+            'email'    => ['nullable', 'email', Rule::unique('users', 'email')->ignore($client->id)],
+            'phone'    => ['nullable', 'string', 'max:40'],
+            'address'  => ['nullable', 'string', 'max:500'],
+            'password' => ['nullable', 'string', 'min:6'],
         ]);
+
+        if (!empty($data['password'])) {
+            $data['password'] = Hash::make($data['password']);
+        } else {
+            unset($data['password']);
+        }
 
         $client->update($data);
 
-        return response()->json($client);
+        return response()->json($client->fresh());
+    }
+
+    public function clientImport(Request $request): JsonResponse
+    {
+        $request->validate(['file' => ['required', 'file', 'max:5120']]);
+        $ext = strtolower($request->file('file')->getClientOriginalExtension());
+        if (!in_array($ext, ['csv', 'json'])) {
+            return response()->json(['message' => 'File must be CSV or JSON.'], 422);
+        }
+
+        try {
+            $rows = UserImportService::parse($request->file('file'));
+        } catch (\Exception $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        $dealerId = $request->user()->id;
+        $created  = [];
+        $skipped  = [];
+
+        foreach ($rows as $i => $row) {
+            $name  = $row['name']     ?? '';
+            $email = $row['email']    ?? '';
+            $phone = $row['phone']    ?? null;
+            $addr  = $row['address']  ?? null;
+            $pass  = $row['password'] ?? '';
+
+            if (!$name || !$email) {
+                $skipped[] = ['row' => $i + 2, 'reason' => 'Missing name or email', 'data' => $email ?: $name];
+                continue;
+            }
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $skipped[] = ['row' => $i + 2, 'reason' => 'Invalid email', 'data' => $email];
+                continue;
+            }
+            if (User::where('email', $email)->exists()) {
+                $skipped[] = ['row' => $i + 2, 'reason' => 'Email already exists', 'data' => $email];
+                continue;
+            }
+
+            $plainPass = $pass ?: Str::random(10);
+            User::create([
+                'name'       => $name,
+                'email'      => $email,
+                'phone'      => $phone ?: null,
+                'address'    => $addr  ?: null,
+                'password'   => Hash::make($plainPass),
+                'role'       => User::ROLE_CLIENT,
+                'created_by' => $dealerId,
+                'is_active'  => true,
+            ]);
+            $created[] = ['name' => $name, 'email' => $email, 'password' => $plainPass];
+        }
+
+        return response()->json(compact('created', 'skipped'));
+    }
+
+    public function ledger(Request $request)
+    {
+        $dealer   = $request->user();
+        $from     = $request->input('from');
+        $to       = $request->input('to');
+        $clientId = $request->input('client_id');
+
+        $orders = Order::with(['client', 'items', 'payments', 'dispatches'])
+            ->where('dealer_id', $dealer->id)
+            ->when($from,     fn($q) => $q->where('order_date', '>=', $from))
+            ->when($to,       fn($q) => $q->where('order_date', '<=', $to))
+            ->when($clientId, fn($q) => $q->where('client_id', $clientId))
+            ->orderBy('order_date')
+            ->orderBy('order_number')
+            ->get();
+
+        $clientName = $clientId ? optional($orders->first()?->client)->name : null;
+
+        $label = $clientName
+            ? 'ledger_' . Str::slug($clientName) . ($from ? "_{$from}" : '') . ($to ? "_to_{$to}" : '')
+            : ($from && $to ? "dealer_ledger_{$from}_to_{$to}" : 'dealer_ledger_' . now()->format('Y-m-d'));
+
+        $pdf = Pdf::loadView('dealer.ledger.pdf', [
+            'dealer'      => $dealer,
+            'orders'      => $orders,
+            'from'        => $from,
+            'to'          => $to,
+            'clientName'  => $clientName,
+            'totalAmount' => $orders->sum('total_amount'),
+            'totalRecvd'  => $orders->sum('total_received'),
+            'totalDue'    => $orders->sum('due_amount'),
+            'totalGst'    => $orders->sum('gst_amount'),
+            'totalDisc'   => $orders->sum('discount_amount'),
+            'generatedAt' => now(),
+        ])->setPaper('a4', 'landscape');
+
+        return $pdf->download("{$label}.pdf");
     }
 
     public function products(Request $request): JsonResponse

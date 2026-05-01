@@ -17,8 +17,11 @@ Route::middleware(['api.token', 'device.approved'])->group(function () {
         Route::get('/products',   [DealerController::class, 'products']);
         Route::get('/analytics',  [DealerController::class, 'analytics']);
 
+        Route::get('/ledger',               [DealerController::class, 'ledger']);
+
         Route::get('/clients',              [DealerController::class, 'clients']);
         Route::post('/clients',             [DealerController::class, 'clientStore']);
+        Route::post('/clients/import',      [DealerController::class, 'clientImport']);
         Route::put('/clients/{client}',     [DealerController::class, 'clientUpdate']);
         Route::delete('/clients/{client}',  [DealerController::class, 'clientDestroy']);
 

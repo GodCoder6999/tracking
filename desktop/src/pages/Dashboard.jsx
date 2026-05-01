@@ -74,13 +74,29 @@ export default function Dashboard({ dealer, onLogout }) {
 
 // ── Home tab ──────────────────────────────────────────────────────────────────
 
-function DashHome({ dealer, onNav }) {
-    const [data, setData]       = useState(null)
-    const [loading, setLoading] = useState(true)
-    const [error, setError]     = useState('')
+const TODAY      = new Date().toISOString().slice(0, 10)
+const PRESETS    = [
+    { label: 'Today',      from: TODAY, to: TODAY },
+    { label: 'This Month', from: TODAY.slice(0, 7) + '-01', to: TODAY },
+    { label: 'Last Month', from: null, to: null, fn: () => {
+        const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - 1)
+        const from = d.toISOString().slice(0, 10)
+        d.setMonth(d.getMonth() + 1); d.setDate(0)
+        return { from, to: d.toISOString().slice(0, 10) }
+    }},
+    { label: 'YTD',        from: TODAY.slice(0, 4) + '-01-01', to: TODAY },
+]
 
-    useEffect(() => {
-        api.dashboard()
+function DashHome({ dealer, onNav }) {
+    const [data,    setData]    = useState(null)
+    const [loading, setLoading] = useState(true)
+    const [error,   setError]   = useState('')
+    const [filters, setFilters] = useState({})
+
+    function load(f = filters) {
+        setLoading(true)
+        setError('')
+        api.dashboard(f)
             .then(setData)
             .catch(err => {
                 const status = err?.response?.status
@@ -88,17 +104,121 @@ function DashHome({ dealer, onNav }) {
                 setError(`[${status ?? 'network'}] ${msg}`)
             })
             .finally(() => setLoading(false))
-    }, [])
+    }
 
-    if (loading) return <Centered><Spinner /></Centered>
-    if (error)   return <Centered><div style={{ color: '#ef4444', fontSize: 13 }}>{error}</div></Centered>
+    useEffect(() => { load({}) }, [])
 
-    const { stats, recent } = data
+    function setF(k, v) {
+        const next = { ...filters, [k]: v }
+        if (!v) delete next[k]
+        setFilters(next)
+    }
+
+    function applyPreset(preset) {
+        const vals = preset.fn ? preset.fn() : { from: preset.from, to: preset.to }
+        const next = { ...filters, ...vals }
+        setFilters(next)
+        load(next)
+    }
+
+    function clearFilters() {
+        setFilters({})
+        load({})
+    }
+
+    const hasFilter = Object.keys(filters).some(k => filters[k])
+    const clients   = data?.clients  || []
+    const products  = data?.products || []
 
     return (
         <div style={{ padding: 28 }}>
-            <h1 style={{ fontSize: 18, fontWeight: 700, color: '#0f172a', marginBottom: 20 }}>Dashboard</h1>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+                <h1 style={{ fontSize: 18, fontWeight: 700, color: '#0f172a', margin: 0 }}>Dashboard</h1>
+                {hasFilter && (
+                    <button onClick={clearFilters} style={{ fontSize: 12, color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500 }}>✕ Clear filters</button>
+                )}
+            </div>
 
+            {/* Filter bar */}
+            <div style={{ background: '#fff', borderRadius: 10, border: '1px solid #e2e8f0', padding: '12px 16px', marginBottom: 20 }}>
+                <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
+                    {PRESETS.map(p => {
+                        const vals = p.fn ? p.fn() : { from: p.from, to: p.to }
+                        const active = filters.from === vals.from && filters.to === vals.to
+                        return (
+                            <button key={p.label} onClick={() => applyPreset(p)} style={{
+                                padding: '4px 10px', fontSize: 11, borderRadius: 5, border: '1px solid #e2e8f0',
+                                background: active ? '#4f46e5' : '#f8fafc',
+                                color: active ? '#fff' : '#475569',
+                                cursor: 'pointer', fontWeight: 500,
+                            }}>{p.label}</button>
+                        )
+                    })}
+                </div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                    <div>
+                        <FLabel>From</FLabel>
+                        <input type="date" value={filters.from || ''} onChange={e => setF('from', e.target.value)} style={iStyle} />
+                    </div>
+                    <div>
+                        <FLabel>To</FLabel>
+                        <input type="date" value={filters.to || ''} onChange={e => setF('to', e.target.value)} style={iStyle} />
+                    </div>
+                    {clients.length > 0 && (
+                        <div>
+                            <FLabel>Client</FLabel>
+                            <select value={filters.client_id || ''} onChange={e => setF('client_id', e.target.value)} style={iStyle}>
+                                <option value="">All Clients</option>
+                                {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                            </select>
+                        </div>
+                    )}
+                    <div>
+                        <FLabel>Payment</FLabel>
+                        <select value={filters.payment_status || ''} onChange={e => setF('payment_status', e.target.value)} style={iStyle}>
+                            <option value="">Any</option>
+                            <option value="unpaid">Unpaid</option>
+                            <option value="partial">Partial</option>
+                            <option value="paid">Paid</option>
+                            <option value="overdue">Overdue 30d+</option>
+                        </select>
+                    </div>
+                    <div>
+                        <FLabel>Dispatch</FLabel>
+                        <select value={filters.dispatch_status || ''} onChange={e => setF('dispatch_status', e.target.value)} style={iStyle}>
+                            <option value="">Any</option>
+                            <option value="pending">Pending</option>
+                            <option value="partial">Partial</option>
+                            <option value="sent">Sent</option>
+                            <option value="delivered">Delivered</option>
+                        </select>
+                    </div>
+                    {products.length > 0 && (
+                        <div>
+                            <FLabel>Product</FLabel>
+                            <select value={filters.product_id || ''} onChange={e => setF('product_id', e.target.value)} style={iStyle}>
+                                <option value="">Any</option>
+                                {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                            </select>
+                        </div>
+                    )}
+                    <button onClick={() => load()} style={{ padding: '7px 16px', fontSize: 12, fontWeight: 600, borderRadius: 7, border: 'none', background: '#4f46e5', color: '#fff', cursor: 'pointer' }}>Apply</button>
+                </div>
+            </div>
+
+            {loading
+                ? <Centered><Spinner /></Centered>
+                : error
+                    ? <Centered><div style={{ color: '#ef4444', fontSize: 13 }}>{error}</div></Centered>
+                    : data && <DashContent stats={data.stats} recent={data.recent} onNav={onNav} />
+            }
+        </div>
+    )
+}
+
+function DashContent({ stats, recent, onNav }) {
+    return (
+        <>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 24 }}>
                 <StatCard label="Clients"          value={stats.clients}          count />
                 <StatCard label="Orders"           value={stats.orders}           count />
@@ -118,9 +238,15 @@ function DashHome({ dealer, onNav }) {
                     : <OrderTable orders={recent} />
                 }
             </div>
-        </div>
+        </>
     )
 }
+
+function FLabel({ children }) {
+    return <div style={{ fontSize: 10, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 3, letterSpacing: '0.05em' }}>{children}</div>
+}
+
+const iStyle = { padding: '6px 9px', fontSize: 12, border: '1px solid #e2e8f0', borderRadius: 6, outline: 'none', background: '#fff', color: '#334155' }
 
 // ── Shared components ─────────────────────────────────────────────────────────
 
