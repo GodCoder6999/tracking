@@ -25,6 +25,7 @@ class User extends Authenticatable
         'address',
         'created_by',
         'is_active',
+        'api_token',
     ];
 
     protected $hidden = [
