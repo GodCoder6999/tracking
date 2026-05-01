@@ -34,3 +34,16 @@
     </svg>
     Analytics
 </a>
+
+@php
+    $pendingDevices = \App\Models\DeviceRegistration::where('status', 'pending')->count();
+@endphp
+<a href="{{ route('owner.devices.index') }}" class="nav-item {{ $active('owner.devices.*') }}">
+    <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+    </svg>
+    <span class="flex-1">Devices</span>
+    @if($pendingDevices > 0)
+        <span class="ml-auto text-xs font-bold bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center">{{ $pendingDevices }}</span>
+    @endif
+</a>

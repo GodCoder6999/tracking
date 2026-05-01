@@ -13,6 +13,7 @@ use App\Http\Controllers\Dealer\PaymentController;
 use App\Http\Controllers\Owner\AnalyticsController;
 use App\Http\Controllers\Owner\DashboardController as OwnerDashboard;
 use App\Http\Controllers\Owner\DealerController;
+use App\Http\Controllers\Owner\DeviceController;
 use App\Http\Controllers\Owner\LedgerController as OwnerLedgerController;
 use App\Http\Controllers\Owner\OrderController as OwnerOrderController;
 use App\Http\Controllers\Owner\ProductController;
@@ -55,6 +56,11 @@ Route::prefix('owner')->name('owner.')->middleware('auth:owner')->group(function
     Route::get('orders/{order}', [OwnerOrderController::class, 'show'])->name('orders.show');
     Route::get('ledger',         [OwnerLedgerController::class, 'download'])->name('ledger.download');
     Route::get('analytics',      AnalyticsController::class)->name('analytics');
+
+    Route::get('devices',                    [DeviceController::class, 'index'])->name('devices.index');
+    Route::post('devices/{device}/approve',  [DeviceController::class, 'approve'])->name('devices.approve');
+    Route::post('devices/{device}/reject',   [DeviceController::class, 'reject'])->name('devices.reject');
+    Route::post('devices/{device}/revoke',   [DeviceController::class, 'revoke'])->name('devices.revoke');
 });
 
 Route::prefix('dealer')->name('dealer.')->middleware('auth:dealer')->group(function () {

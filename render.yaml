@@ -42,4 +42,6 @@ services:
         value: owner-gate-7k9m2x
       - key: MAIL_MAILER
         value: log
+      - key: OWNER_NOTIFY_EMAIL
+        sync: false
 
