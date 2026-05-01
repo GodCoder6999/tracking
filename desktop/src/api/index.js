@@ -71,8 +71,29 @@ const api = {
     clientUpdate: (id, data) =>
         http.put(`/dealer/clients/${id}`, data).then(r => r.data),
 
+    clientDelete: (id) =>
+        http.delete(`/dealer/clients/${id}`).then(r => r.data),
+
     products: () =>
         http.get('/dealer/products').then(r => r.data),
+
+    // payments
+    paymentAdd: (orderId, data) =>
+        http.post(`/dealer/orders/${orderId}/payments`, data).then(r => r.data),
+
+    paymentDelete: (orderId, paymentId) =>
+        http.delete(`/dealer/orders/${orderId}/payments/${paymentId}`).then(r => r.data),
+
+    // dispatches
+    dispatchAdd: (orderId, data) =>
+        http.post(`/dealer/orders/${orderId}/dispatches`, data).then(r => r.data),
+
+    dispatchMarkDelivered: (orderId) =>
+        http.post(`/dealer/orders/${orderId}/dispatches/delivered`).then(r => r.data),
+
+    // analytics
+    analytics: (params = {}) =>
+        http.get('/dealer/analytics', { params }).then(r => r.data),
 }
 
 export default api

@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\DispatchItem;
 use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\User;
 use App\Notifications\OrderStatusUpdated;
@@ -233,7 +235,169 @@ class DealerController extends Controller
 
     public function products(Request $request): JsonResponse
     {
-        $products = Product::where('is_active', true)->orderBy('name')->get(['id', 'name', 'rate', 'dealer_cost']);
+        $products = Product::where('is_active', true)->orderBy('name')->get(['id', 'name', 'rate', 'dealer_cost', 'stock']);
         return response()->json($products);
+    }
+
+    public function clientDestroy(Request $request, User $client): JsonResponse
+    {
+        abort_unless($client->created_by === $request->user()->id && $client->isClient(), 403);
+        $client->delete();
+        return response()->json(['message' => 'Client deleted.']);
+    }
+
+    // ── Payments ──────────────────────────────────────────────────────────────
+
+    public function paymentStore(Request $request, Order $order): JsonResponse
+    {
+        abort_unless($order->dealer_id === $request->user()->id, 403);
+
+        $data = $request->validate([
+            'amount'        => ['required', 'numeric', 'min:0.01'],
+            'payment_date'  => ['required', 'date'],
+            'received_date' => ['nullable', 'date'],
+            'method'        => ['nullable', 'string', 'max:60'],
+            'notes'         => ['nullable', 'string'],
+        ]);
+
+        $payment = $order->payments()->create($data);
+        OrderMath::recompute($order);
+        $order->client->notify(new OrderStatusUpdated($order, 'Payment recorded ₹'.number_format($data['amount'], 2)));
+
+        return response()->json($payment->fresh(), 201);
+    }
+
+    public function paymentDestroy(Request $request, Order $order, int $paymentId): JsonResponse
+    {
+        abort_unless($order->dealer_id === $request->user()->id, 403);
+        $payment = $order->payments()->findOrFail($paymentId);
+        $payment->delete();
+        OrderMath::recompute($order);
+        return response()->json(['message' => 'Payment deleted.']);
+    }
+
+    // ── Dispatches ────────────────────────────────────────────────────────────
+
+    public function dispatchStore(Request $request, Order $order): JsonResponse
+    {
+        abort_unless($order->dealer_id === $request->user()->id, 403);
+
+        $data = $request->validate([
+            'dispatch_qty'    => ['required', 'integer', 'min:1'],
+            'dispatch_date'   => ['required', 'date'],
+            'courier'         => ['nullable', 'string', 'max:120'],
+            'tracking_number' => ['nullable', 'string', 'max:120'],
+            'tracking_url'    => ['nullable', 'url', 'max:500'],
+            'notes'           => ['nullable', 'string'],
+            'item_qtys'       => ['nullable', 'array'],
+            'item_qtys.*'     => ['integer', 'min:0'],
+        ]);
+
+        $totalQty   = (int) $order->items()->sum('qty');
+        $dispatched = (int) $order->dispatches()->sum('dispatch_qty');
+        $remaining  = max(0, $totalQty - $dispatched);
+        $thisQty    = min($data['dispatch_qty'], $remaining ?: $data['dispatch_qty']);
+
+        $itemQtys = $data['item_qtys'] ?? [];
+        unset($data['item_qtys']);
+
+        $data['dispatch_qty'] = $thisQty;
+        $data['due_qty']      = max(0, $totalQty - $dispatched - $thisQty);
+
+        $dispatch = $order->dispatches()->create($data);
+
+        foreach ($itemQtys as $orderItemId => $qty) {
+            $qty = (int) $qty;
+            if ($qty > 0) {
+                DispatchItem::create([
+                    'dispatch_id'   => $dispatch->id,
+                    'order_item_id' => (int) $orderItemId,
+                    'qty'           => $qty,
+                ]);
+            }
+        }
+
+        OrderMath::recompute($order);
+        $order->client->notify(new OrderStatusUpdated($order, "Dispatched {$thisQty} units"));
+
+        $order->load(['dispatches.dispatchItems', 'items']);
+        return response()->json([
+            'dispatch' => $dispatch->load('dispatchItems'),
+            'order'    => $order->only(['dispatch_status', 'due_qty']),
+        ], 201);
+    }
+
+    public function dispatchMarkDelivered(Request $request, Order $order): JsonResponse
+    {
+        abort_unless($order->dealer_id === $request->user()->id, 403);
+        $order->update(['dispatch_status' => 'delivered']);
+        $order->client->notify(new OrderStatusUpdated($order, 'Delivered'));
+        return response()->json(['message' => 'Marked delivered.', 'dispatch_status' => 'delivered']);
+    }
+
+    // ── Analytics ─────────────────────────────────────────────────────────────
+
+    public function analytics(Request $request): JsonResponse
+    {
+        $dealer   = $request->user();
+        $did      = $dealer->id;
+        $from     = $request->filled('from') ? $request->from : null;
+        $to       = $request->filled('to')   ? $request->to   : null;
+        $clientId = $request->filled('client_id') ? $request->client_id : null;
+
+        $base = fn() => Order::where('dealer_id', $did)
+            ->when($from,     fn($q) => $q->where('order_date', '>=', $from))
+            ->when($to,       fn($q) => $q->where('order_date', '<=', $to))
+            ->when($clientId, fn($q) => $q->where('client_id', $clientId));
+
+        $totals = [
+            'total_revenue'  => (float) $base()->sum('total_amount'),
+            'total_received' => (float) $base()->sum('total_received'),
+            'total_due'      => (float) $base()->sum('due_amount'),
+            'total_orders'   => $base()->count(),
+            'total_clients'  => User::where('role', User::ROLE_CLIENT)->where('created_by', $did)->count(),
+        ];
+
+        $months = collect(range(11, 0))
+            ->map(fn($i) => now()->subMonths($i)->format('Y-m'))
+            ->values();
+
+        $monthlyRaw  = $base()->selectRaw("strftime('%Y-%m', order_date) as month, SUM(total_amount) as revenue")->groupBy('month')->pluck('revenue', 'month');
+        $monthlyLine = $months->map(fn($m) => (float) ($monthlyRaw->get($m) ?? 0))->values();
+
+        $paymentStatus  = $base()->selectRaw('payment_status, COUNT(*) as cnt')->groupBy('payment_status')->pluck('cnt', 'payment_status');
+        $dispatchStatus = $base()->selectRaw('dispatch_status, COUNT(*) as cnt')->groupBy('dispatch_status')->pluck('cnt', 'dispatch_status');
+
+        $funnel = [
+            ['label' => 'Total Orders', 'value' => $base()->count()],
+            ['label' => 'Any Payment',  'value' => $base()->whereIn('payment_status', ['partial','paid'])->count()],
+            ['label' => 'Fully Paid',   'value' => $base()->where('payment_status', 'paid')->count()],
+            ['label' => 'Any Dispatch', 'value' => $base()->whereIn('dispatch_status', ['partial','sent','delivered'])->count()],
+            ['label' => 'Delivered',    'value' => $base()->where('dispatch_status', 'delivered')->count()],
+        ];
+
+        $myClients       = User::where('role', User::ROLE_CLIENT)->where('created_by', $did)->select('id','name','is_active')->orderBy('name')->get();
+        $clientOrderStats = $base()->selectRaw('client_id, SUM(total_amount) as revenue, SUM(total_received) as received, SUM(due_amount) as due, COUNT(*) as orders')->groupBy('client_id')->get()->keyBy('client_id');
+
+        $clientStats = $myClients->map(fn($c) => [
+            'id'       => $c->id,
+            'name'     => $c->name,
+            'active'   => (bool) $c->is_active,
+            'revenue'  => (float) ($clientOrderStats->get($c->id)?->revenue  ?? 0),
+            'received' => (float) ($clientOrderStats->get($c->id)?->received ?? 0),
+            'due'      => (float) ($clientOrderStats->get($c->id)?->due      ?? 0),
+            'orders'   => (int)   ($clientOrderStats->get($c->id)?->orders   ?? 0),
+        ])->values();
+
+        $topProducts = OrderItem::selectRaw('particulars, SUM(amount) as revenue, SUM(qty) as units')
+            ->whereIn('order_id', fn($q) => $q->select('id')->from('orders')->where('dealer_id', $did)
+                ->when($from,     fn($q) => $q->where('order_date', '>=', $from))
+                ->when($to,       fn($q) => $q->where('order_date', '<=', $to))
+                ->when($clientId, fn($q) => $q->where('client_id', $clientId)))
+            ->groupBy('particulars')->orderByDesc('revenue')->limit(10)->get();
+
+        $clientsList = $myClients->map(fn($c) => ['id' => $c->id, 'name' => $c->name]);
+
+        return response()->json(compact('totals','months','monthlyLine','paymentStatus','dispatchStatus','funnel','clientStats','topProducts','clientsList'));
     }
 }
