@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import api from '../api'
 import { Centered, Spinner, fmtNum } from './Dashboard'
 
@@ -40,6 +40,8 @@ export default function CreateOrder({ onBack, onCreated }) {
         notes: '', internal_notes: '',
     })
     const [items, setItems] = useState([emptyItem()])
+    const tokenProofRef  = useRef()
+    const attachmentRef  = useRef()
 
     useEffect(() => {
         Promise.all([api.clients(), api.products()])
@@ -83,19 +85,38 @@ export default function CreateOrder({ onBack, onCreated }) {
     async function submit(e) {
         e.preventDefault()
         if (!form.client_id) { alert('Select a client.'); return }
-        const payload = {
-            ...form,
-            token_amount: form.token_amount ? parseFloat(form.token_amount) : 0,
-            items: items.map(it => ({
-                product_id:       it.product_id || null,
-                particulars:      it.particulars,
-                qty:              parseInt(it.qty),
-                rate:             parseFloat(it.rate),
-                dealer_cost:      it.dealer_cost ? parseFloat(it.dealer_cost) : null,
-                discount_percent: parseFloat(it.discount_percent) || 0,
-                gst_rate:         parseFloat(it.gst_rate) || 0,
-            })),
+
+        const tokenFile = tokenProofRef.current?.files?.[0]
+        const attachFile = attachmentRef.current?.files?.[0]
+
+        const itemsArr = items.map(it => ({
+            product_id:       it.product_id || null,
+            particulars:      it.particulars,
+            qty:              parseInt(it.qty),
+            rate:             parseFloat(it.rate),
+            dealer_cost:      it.dealer_cost ? parseFloat(it.dealer_cost) : null,
+            discount_percent: parseFloat(it.discount_percent) || 0,
+            gst_rate:         parseFloat(it.gst_rate) || 0,
+        }))
+
+        let payload
+        if (tokenFile || attachFile) {
+            const fd = new FormData()
+            Object.entries(form).forEach(([k, v]) => { if (v !== '' && v !== null) fd.append(k, k === 'token_amount' ? (parseFloat(v) || 0) : v) })
+            itemsArr.forEach((it, i) => {
+                Object.entries(it).forEach(([k, v]) => { if (v !== null) fd.append(`items[${i}][${k}]`, v) })
+            })
+            if (tokenFile)  fd.append('token_proof', tokenFile)
+            if (attachFile) fd.append('attachment',  attachFile)
+            payload = fd
+        } else {
+            payload = {
+                ...form,
+                token_amount: form.token_amount ? parseFloat(form.token_amount) : 0,
+                items: itemsArr,
+            }
         }
+
         setSaving(true)
         try {
             await api.orderCreate(payload)
@@ -151,6 +172,12 @@ export default function CreateOrder({ onBack, onCreated }) {
                         </Field>
                         <Field label="Token Amount ₹">
                             <input type="number" min="0" step="0.01" value={form.token_amount} onChange={e => setF('token_amount', e.target.value)} style={inp} />
+                        </Field>
+                        <Field label="Token Proof (PDF/JPG/PNG, ≤5MB)">
+                            <input ref={tokenProofRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" style={{ fontSize: 12 }} />
+                        </Field>
+                        <Field label="Attachment (PDF/JPG/PNG, ≤10MB)">
+                            <input ref={attachmentRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" style={{ fontSize: 12 }} />
                         </Field>
                     </div>
                     <div style={{ padding: '0 16px 16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>

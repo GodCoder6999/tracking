@@ -287,7 +287,6 @@ function ClientModal({ client, onSaved, onClose }) {
         try {
             const payload = { ...form }
             if (!payload.password) delete payload.password
-            if (!isNew) delete payload.email  // email update goes through validation on backend but skip if unchanged
             let res
             if (isNew) {
                 res = await api.clientCreate(payload)
@@ -310,7 +309,7 @@ function ClientModal({ client, onSaved, onClose }) {
                 {error && <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 7, padding: '10px 14px', color: '#dc2626', fontSize: 13, marginBottom: 14 }}>{error}</div>}
                 <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                     <Field label="Name *" value={form.name} onChange={v => set('name', v)} required />
-                    <Field label="Email *" type="email" value={form.email} onChange={v => set('email', v)} required={isNew} disabled={!isNew} />
+                    <Field label="Email *" type="email" value={form.email} onChange={v => set('email', v)} required />
                     <Field label="Phone" value={form.phone} onChange={v => set('phone', v)} />
                     <Field label="Address" value={form.address} onChange={v => set('address', v)} />
                     <Field

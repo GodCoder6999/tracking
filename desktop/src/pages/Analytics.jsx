@@ -23,6 +23,8 @@ export default function AnalyticsPage() {
     const [from,    setFrom]    = useState('')
     const [to,      setTo]      = useState('')
     const [clientId, setClientId] = useState('')
+    const [sortKey,  setSortKey]  = useState('revenue')
+    const [sortDir,  setSortDir]  = useState(-1)
 
     function load() {
         setLoading(true)
@@ -182,25 +184,55 @@ export default function AnalyticsPage() {
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                             <thead>
                                 <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                    {['Client', 'Orders', 'Revenue', 'Received', 'Due'].map(h => (
-                                        <th key={h} style={colh}>{h}</th>
+                                    {[
+                                        { label: 'Client',       key: 'name'     },
+                                        { label: 'Status',       key: 'is_active'},
+                                        { label: 'Orders',       key: 'orders'   },
+                                        { label: 'Revenue',      key: 'revenue'  },
+                                        { label: 'Received',     key: 'received' },
+                                        { label: 'Due',          key: 'due'      },
+                                        { label: 'Collection %', key: 'pct'      },
+                                    ].map(({ label, key }) => (
+                                        <th key={key} onClick={() => {
+                                            if (sortKey === key) setSortDir(d => -d)
+                                            else { setSortKey(key); setSortDir(-1) }
+                                        }} style={{ ...colh, cursor: 'pointer', userSelect: 'none' }}>
+                                            {label}{sortKey === key ? (sortDir === -1 ? ' ↓' : ' ↑') : ''}
+                                        </th>
                                     ))}
                                 </tr>
                             </thead>
                             <tbody>
-                                {[...clientStats].sort((a, b) => b.revenue - a.revenue).map(c => (
-                                    <tr key={c.id}
-                                        style={{ borderBottom: '1px solid #f8fafc' }}
-                                        onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
-                                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                                    >
-                                        <td style={cold}>{c.name}</td>
-                                        <td style={cold}>{c.orders}</td>
-                                        <td style={{ ...cold, fontWeight: 600 }}>₹{fmtNum(c.revenue)}</td>
-                                        <td style={{ ...cold, color: '#16a34a' }}>₹{fmtNum(c.received)}</td>
-                                        <td style={{ ...cold, color: c.due > 0 ? '#dc2626' : '#64748b' }}>₹{fmtNum(c.due)}</td>
-                                    </tr>
-                                ))}
+                                {[...clientStats]
+                                    .map(c => ({ ...c, pct: c.revenue > 0 ? Math.round((c.received / c.revenue) * 100) : 0 }))
+                                    .sort((a, b) => {
+                                        const av = a[sortKey] ?? 0, bv = b[sortKey] ?? 0
+                                        if (typeof av === 'string') return sortDir * av.localeCompare(bv)
+                                        return sortDir * (bv - av)
+                                    })
+                                    .map(c => {
+                                        const pctColor = c.pct >= 80 ? '#16a34a' : c.pct >= 50 ? '#d97706' : '#dc2626'
+                                        return (
+                                            <tr key={c.id}
+                                                style={{ borderBottom: '1px solid #f8fafc' }}
+                                                onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
+                                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                            >
+                                                <td style={cold}>{c.name}</td>
+                                                <td style={cold}>
+                                                    <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 7px', borderRadius: 99, background: c.is_active ? '#dcfce7' : '#f1f5f9', color: c.is_active ? '#16a34a' : '#94a3b8' }}>
+                                                        {c.is_active ? 'Active' : 'Inactive'}
+                                                    </span>
+                                                </td>
+                                                <td style={cold}>{c.orders}</td>
+                                                <td style={{ ...cold, fontWeight: 600 }}>₹{fmtNum(c.revenue)}</td>
+                                                <td style={{ ...cold, color: '#16a34a' }}>₹{fmtNum(c.received)}</td>
+                                                <td style={{ ...cold, color: c.due > 0 ? '#dc2626' : '#64748b' }}>₹{fmtNum(c.due)}</td>
+                                                <td style={{ ...cold, fontWeight: 700, color: pctColor }}>{c.pct}%</td>
+                                            </tr>
+                                        )
+                                    })
+                                }
                             </tbody>
                         </table>
                     </div>

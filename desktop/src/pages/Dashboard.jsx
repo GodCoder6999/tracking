@@ -14,7 +14,13 @@ const NAV = [
 ]
 
 export default function Dashboard({ dealer, onLogout }) {
-    const [page, setPage] = useState('dashboard')
+    const [page,           setPage]           = useState('dashboard')
+    const [pendingOrderId, setPendingOrderId] = useState(null)
+
+    function navToOrder(order) {
+        setPendingOrderId(order.id)
+        setPage('orders')
+    }
 
     return (
         <div style={{ display: 'flex', height: '100%', background: '#f8fafc' }}>
@@ -62,8 +68,8 @@ export default function Dashboard({ dealer, onLogout }) {
 
             {/* Main content */}
             <main style={{ flex: 1, overflow: 'auto', minWidth: 0 }}>
-                {page === 'dashboard' && <DashHome dealer={dealer} onNav={setPage} />}
-                {page === 'orders'    && <OrdersPage dealer={dealer} />}
+                {page === 'dashboard' && <DashHome dealer={dealer} onNav={setPage} onOrderClick={navToOrder} />}
+                {page === 'orders'    && <OrdersPage dealer={dealer} initialOrderId={pendingOrderId} onClearInitial={() => setPendingOrderId(null)} />}
                 {page === 'clients'   && <ClientsPage dealer={dealer} />}
                 {page === 'products'  && <ProductsPage />}
                 {page === 'analytics' && <AnalyticsPage />}
@@ -87,7 +93,7 @@ const PRESETS    = [
     { label: 'YTD',        from: TODAY.slice(0, 4) + '-01-01', to: TODAY },
 ]
 
-function DashHome({ dealer, onNav }) {
+function DashHome({ dealer, onNav, onOrderClick }) {
     const [data,    setData]    = useState(null)
     const [loading, setLoading] = useState(true)
     const [error,   setError]   = useState('')
@@ -157,6 +163,10 @@ function DashHome({ dealer, onNav }) {
                 </div>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
                     <div>
+                        <FLabel>Order #</FLabel>
+                        <input placeholder="Search order #" value={filters.order_number || ''} onChange={e => setF('order_number', e.target.value)} style={iStyle} />
+                    </div>
+                    <div>
                         <FLabel>From</FLabel>
                         <input type="date" value={filters.from || ''} onChange={e => setF('from', e.target.value)} style={iStyle} />
                     </div>
@@ -210,13 +220,13 @@ function DashHome({ dealer, onNav }) {
                 ? <Centered><Spinner /></Centered>
                 : error
                     ? <Centered><div style={{ color: '#ef4444', fontSize: 13 }}>{error}</div></Centered>
-                    : data && <DashContent stats={data.stats} recent={data.recent} onNav={onNav} />
+                    : data && <DashContent stats={data.stats} recent={data.recent} onNav={onNav} onOrderClick={onOrderClick} />
             }
         </div>
     )
 }
 
-function DashContent({ stats, recent, onNav }) {
+function DashContent({ stats, recent, onNav, onOrderClick }) {
     return (
         <>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 24 }}>
@@ -235,7 +245,7 @@ function DashContent({ stats, recent, onNav }) {
                 </div>
                 {recent.length === 0
                     ? <div style={{ padding: 32, textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>No orders yet.</div>
-                    : <OrderTable orders={recent} />
+                    : <OrderTable orders={recent} onSelect={onOrderClick} />
                 }
             </div>
         </>

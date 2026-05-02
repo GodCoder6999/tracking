@@ -7,6 +7,8 @@ let _fingerprint = null
 let _onUnauthorized = null
 let _handlingUnauth = false
 
+export const storageUrl = (path) => path ? BASE_URL.replace(/\/api$/, '') + '/storage/' + path : null
+
 export function setToken(token)             { _token = token }
 export function setFingerprint(fp)          { _fingerprint = fp }
 export function clearToken()                { _token = null }
@@ -56,8 +58,13 @@ const api = {
     orderShow: (id) =>
         http.get(`/dealer/orders/${id}`).then(r => r.data),
 
-    orderCreate: (data) =>
-        http.post('/dealer/orders', data).then(r => r.data),
+    orderCreate: (data) => {
+        const isFormData = data instanceof FormData
+        return http.post('/dealer/orders', data, isFormData
+            ? { headers: { 'Content-Type': 'multipart/form-data' } }
+            : {}
+        ).then(r => r.data)
+    },
 
     orderUpdateLabel: (id, label_status) =>
         http.patch(`/dealer/orders/${id}/label`, { label_status }).then(r => r.data),
