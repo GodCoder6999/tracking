@@ -20,8 +20,5 @@
 
         <button class="btn-primary w-full">Sign In</button>
 
-        <p class="text-center text-xs text-slate-500 pt-2">
-            <a href="{{ route('login.dealer') }}" class="underline hover:text-slate-700">Login as Dealer</a>
-        </p>
     </form>
 </x-layouts.guest>
