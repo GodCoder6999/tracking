@@ -15,8 +15,7 @@
         </div>
 
         <div class="card space-y-3">
-            <a href="{{ route('login.dealer') }}" class="btn-primary w-full">Dealer Login</a>
-            <a href="{{ route('login.client') }}" class="btn-secondary w-full">Client Login</a>
+            <a href="{{ route('login.client') }}" class="btn-primary w-full">Client Login</a>
         </div>
 
         <p class="text-center text-xs text-slate-400 mt-6">Internal use only.</p>
